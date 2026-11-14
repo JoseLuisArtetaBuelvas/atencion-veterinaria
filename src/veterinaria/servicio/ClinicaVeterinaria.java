@@ -263,6 +263,50 @@ public class ClinicaVeterinaria {
     }
 
     // ==================================================================
+    // Cancelacion y eliminacion
+    // ==================================================================
+
+    /** Cancela una solicitud en espera: sale de la sala, queda en el registro como CANCELADA. */
+    public Atencion cancelarAtencion(int numero) throws VeterinariaException {
+        Atencion a = buscarAtencion(numero);
+        exigirEnEspera(a, "cancelarla");
+        salaDeEspera.remove(a);
+        mascotasEnEspera.remove(a.getMascota().getCodigo());
+        a.setEstado(EstadoAtencion.CANCELADA);
+        return a;
+    }
+
+    /** Elimina una solicitud registrada por error: desaparece de TODAS las colecciones. */
+    public Atencion eliminarAtencion(int numero) throws VeterinariaException {
+        Atencion a = buscarAtencion(numero);
+        registroAtenciones.remove(a);
+        atencionesPorNumero.remove(numero);
+        if (salaDeEspera.remove(a)) {
+            mascotasEnEspera.remove(a.getMascota().getCodigo());
+        }
+        return a;
+    }
+
+    /**
+     * Elimina una mascota y, en cascada, sus solicitudes: no puede quedar una atencion
+     * apuntando a una mascota que ya no existe en el sistema.
+     */
+    public List<Atencion> eliminarMascota(String codigo) throws VeterinariaException {
+        Mascota m = buscarMascota(codigo);
+        List<Atencion> eliminadas = new ArrayList<>();
+        for (Atencion a : new ArrayList<>(registroAtenciones)) {
+            if (a.getMascota().equals(m)) {
+                eliminarAtencion(a.getNumero());
+                eliminadas.add(a);
+            }
+        }
+        mascotasPorCodigo.remove(m.getCodigo());
+        mascotasPorPropietario.get(m.getPropietario().getDocumento()).remove(m);
+        mascotasEnEspera.remove(m.getCodigo());
+        return eliminadas;
+    }
+
+    // ==================================================================
     // Consultas
     // ==================================================================
 

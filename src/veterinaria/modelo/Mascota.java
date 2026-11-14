@@ -1,13 +1,21 @@
 package veterinaria.modelo;
 
+import java.util.Comparator;
 import java.util.Objects;
 
 /**
  * Mascota (paciente) de la clinica.
  *
  * Identificador: codigo (ej. M-001). equals y hashCode usan solo el codigo.
+ * Orden natural (Comparable): por codigo. Se usa en el TreeSet de mascotas de cada propietario.
  */
-public class Mascota {
+public class Mascota implements Comparable<Mascota> {
+
+    /** Criterio alternativo: especie y luego nombre (y codigo para desempatar). */
+    public static final Comparator<Mascota> POR_ESPECIE_Y_NOMBRE =
+            Comparator.comparing(Mascota::getEspecie, String.CASE_INSENSITIVE_ORDER)
+                      .thenComparing(Mascota::getNombre, String.CASE_INSENSITIVE_ORDER)
+                      .thenComparing(Mascota::getCodigo);
 
     private String codigo;
     private String nombre;
@@ -78,6 +86,11 @@ public class Mascota {
     }
 
     /** Orden natural por codigo: M-001 antes que M-002. */
+    @Override
+    public int compareTo(Mascota otra) {
+        return codigo.compareTo(otra.codigo);
+    }
+
     /** Dos mascotas son la misma si tienen el mismo codigo. */
     @Override
     public boolean equals(Object o) {

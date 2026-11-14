@@ -1,6 +1,7 @@
 package veterinaria.servicio;
 
 import veterinaria.modelo.Atencion;
+import veterinaria.modelo.EstadoAtencion;
 import veterinaria.modelo.Mascota;
 import veterinaria.modelo.NivelUrgencia;
 import veterinaria.modelo.Propietario;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -43,6 +45,9 @@ public class ClinicaVeterinaria {
 
     // 4. Datos ordenados: propietarios por documento y, para cada uno, sus mascotas por codigo
     private final SortedMap<String, SortedSet<Mascota>> mascotasPorPropietario = new TreeMap<>();
+
+    // 5. Atencion por prioridad clinica
+    private final PriorityQueue<Atencion> salaDeEspera = new PriorityQueue<>(Atencion.POR_PRIORIDAD_CLINICA);
 
     private int siguienteNumero = 1001;
     private long contadorLlegadas = 0;
@@ -138,6 +143,7 @@ public class ClinicaVeterinaria {
         Atencion a = new Atencion(siguienteNumero++, mascota, servicio, descripcion, urgencia, ++contadorLlegadas);
         registroAtenciones.add(a);
         atencionesPorNumero.put(a.getNumero(), a);
+        salaDeEspera.add(a);
         mascotasEnEspera.add(mascota.getCodigo());
         return a;
     }
@@ -148,6 +154,36 @@ public class ClinicaVeterinaria {
             throw new VeterinariaException("No existe una solicitud con el numero " + numero);
         }
         return a;
+    }
+
+    /** Consulta quien sigue sin sacarlo de la cola (peek). */
+    public Atencion verSiguientePaciente() throws VeterinariaException {
+        Atencion a = salaDeEspera.peek();
+        if (a == null) {
+            throw new VeterinariaException("No hay pacientes en la sala de espera");
+        }
+        return a;
+    }
+
+    /** Atiende al paciente de mayor prioridad clinica (poll). */
+    public Atencion atenderSiguientePaciente() throws VeterinariaException {
+        Atencion a = salaDeEspera.poll();
+        if (a == null) {
+            throw new VeterinariaException("No hay pacientes en la sala de espera");
+        }
+        a.setEstado(EstadoAtencion.ATENDIDA);
+        mascotasEnEspera.remove(a.getMascota().getCodigo());
+        return a;
+    }
+
+    /** Lista de la sala de espera en el orden en que seran atendidos (sin vaciar la cola real). */
+    public List<Atencion> salaDeEsperaOrdenada() {
+        PriorityQueue<Atencion> copia = new PriorityQueue<>(salaDeEspera);
+        List<Atencion> orden = new ArrayList<>();
+        while (!copia.isEmpty()) {
+            orden.add(copia.poll());
+        }
+        return orden;
     }
 
     // ==================================================================
@@ -181,6 +217,11 @@ public class ClinicaVeterinaria {
     public int totalMascotas() {
         return mascotasPorCodigo.size();
     }
+
+    public int totalEnEspera() {
+        return salaDeEspera.size();
+    }
+
     public int totalAtencionesIndexadas() {
         return atencionesPorNumero.size();
     }

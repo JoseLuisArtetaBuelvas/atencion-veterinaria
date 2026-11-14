@@ -157,6 +157,11 @@ public class ClinicaVeterinaria {
         return a;
     }
 
+    /** Permite al menu avisar antes de pedir los demas datos de la solicitud. */
+    public boolean tieneSolicitudEnEspera(String codigoMascota) {
+        return mascotasEnEspera.contains(limpiar(codigoMascota).toUpperCase());
+    }
+
     public Atencion buscarAtencion(int numero) throws VeterinariaException {
         Atencion a = atencionesPorNumero.get(numero);
         if (a == null) {

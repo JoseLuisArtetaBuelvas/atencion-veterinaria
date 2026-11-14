@@ -1,5 +1,6 @@
 package veterinaria.modelo;
 
+import java.util.Comparator;
 import java.util.Objects;
 
 /**
@@ -10,6 +11,14 @@ import java.util.Objects;
  * dos solicitudes con la misma urgencia (la que llego primero va primero).
  */
 public class Atencion {
+
+    /**
+     * Criterio de la PriorityQueue: primero la urgencia (CRITICA antes que BAJA)
+     * y, con la misma urgencia, la que llego primero.
+     */
+    public static final Comparator<Atencion> POR_PRIORIDAD_CLINICA =
+            Comparator.comparing(Atencion::getUrgencia)            // enum: orden de declaracion
+                      .thenComparingLong(Atencion::getOrdenLlegada);
 
     private final int numero;
     private final Mascota mascota;

@@ -85,6 +85,7 @@ public class PruebasClinica {
         verificarExcepcion("una mascota no puede tener dos solicitudes en espera",
                 () -> c.registrarAtencion("M-007", "Consulta general", "Otra cosa", "ALTA"));
         verificar("16 mascotas en espera", c.getMascotasEnEspera().size(), 16);
+        verificar("tieneSolicitudEnEspera detecta la espera", c.tieneSolicitudEnEspera("m-007"), true);
     }
 
     private static void probarOrden() throws VeterinariaException {

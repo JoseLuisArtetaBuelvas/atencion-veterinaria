@@ -118,6 +118,9 @@ public class MenuConsola {
 
     private void registrarAtencion() throws VeterinariaException {
         Mascota m = clinica.buscarMascota(leerTexto("Codigo de la mascota: "));
+        if (clinica.tieneSolicitudEnEspera(m.getCodigo())) {
+            throw new VeterinariaException(m.getNombre() + " (" + m.getCodigo() + ") ya tiene una solicitud en espera");
+        }
         System.out.println("Paciente: " + m);
         System.out.println("Servicios disponibles: " + clinica.getTiposServicio());
         String servicio = leerTexto("Tipo de servicio: ");

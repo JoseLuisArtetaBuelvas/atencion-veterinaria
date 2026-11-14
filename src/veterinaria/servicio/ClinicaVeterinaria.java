@@ -13,6 +13,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Logica de la clinica veterinaria: administra todas las colecciones y mantiene su consistencia.
@@ -37,6 +41,9 @@ public class ClinicaVeterinaria {
     private final Set<String> tiposServicio = new LinkedHashSet<>();   // catalogo sin repetidos, en orden de registro
     private final Set<String> mascotasEnEspera = new HashSet<>();      // una mascota no puede tener dos solicitudes en espera
 
+    // 4. Datos ordenados: propietarios por documento y, para cada uno, sus mascotas por codigo
+    private final SortedMap<String, SortedSet<Mascota>> mascotasPorPropietario = new TreeMap<>();
+
     private int siguienteNumero = 1001;
     private long contadorLlegadas = 0;
 
@@ -55,6 +62,7 @@ public class ClinicaVeterinaria {
         Propietario p = new Propietario(doc, obligatorio(nombre, "El nombre del propietario"),
                 obligatorio(telefono, "El telefono"));
         propietariosPorDocumento.put(doc, p);
+        mascotasPorPropietario.put(doc, new TreeSet<>());   // TreeSet: orden natural de Mascota (codigo)
         return p;
     }
 
@@ -79,6 +87,7 @@ public class ClinicaVeterinaria {
         Mascota m = new Mascota(cod, obligatorio(nombre, "El nombre de la mascota"),
                 obligatorio(especie, "La especie"), obligatorio(raza, "La raza"), edad, propietario);
         mascotasPorCodigo.put(cod, m);
+        mascotasPorPropietario.get(propietario.getDocumento()).add(m);
         return m;
     }
 
@@ -147,6 +156,18 @@ public class ClinicaVeterinaria {
 
     public List<Atencion> getRegistroAtenciones() {
         return Collections.unmodifiableList(registroAtenciones);
+    }
+
+    /** Propietarios ordenados por documento, cada uno con sus mascotas ordenadas por codigo. */
+    public SortedMap<String, SortedSet<Mascota>> getMascotasPorPropietario() {
+        return Collections.unmodifiableSortedMap(mascotasPorPropietario);
+    }
+
+    /** Todas las mascotas en un TreeSet con un criterio distinto al natural: especie y nombre. */
+    public SortedSet<Mascota> mascotasPorEspecieYNombre() {
+        SortedSet<Mascota> ordenadas = new TreeSet<>(Mascota.POR_ESPECIE_Y_NOMBRE);
+        ordenadas.addAll(mascotasPorCodigo.values());
+        return ordenadas;
     }
 
     public Set<String> getMascotasEnEspera() {

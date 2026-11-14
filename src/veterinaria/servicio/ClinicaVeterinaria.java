@@ -8,8 +8,11 @@ import veterinaria.modelo.Propietario;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Logica de la clinica veterinaria: administra todas las colecciones y mantiene su consistencia.
@@ -29,6 +32,10 @@ public class ClinicaVeterinaria {
     private final Map<String, Propietario> propietariosPorDocumento = new HashMap<>();
     private final Map<String, Mascota> mascotasPorCodigo = new HashMap<>();
     private final Map<Integer, Atencion> atencionesPorNumero = new HashMap<>();
+
+    // 3. Datos unicos
+    private final Set<String> tiposServicio = new LinkedHashSet<>();   // catalogo sin repetidos, en orden de registro
+    private final Set<String> mascotasEnEspera = new HashSet<>();      // una mascota no puede tener dos solicitudes en espera
 
     private int siguienteNumero = 1001;
     private long contadorLlegadas = 0;
@@ -89,19 +96,40 @@ public class ClinicaVeterinaria {
     }
 
     // ==================================================================
+    // Tipos de servicio (Set)
+    // ==================================================================
+
+    /** Retorna false si el tipo ya existia: el Set no admite repetidos. */
+    public boolean registrarTipoServicio(String tipo) throws VeterinariaException {
+        return tiposServicio.add(normalizarServicio(obligatorio(tipo, "El tipo de servicio")));
+    }
+
+    public Set<String> getTiposServicio() {
+        return Collections.unmodifiableSet(tiposServicio);
+    }
+
+    // ==================================================================
     // Solicitudes de atencion
     // ==================================================================
 
     public Atencion registrarAtencion(String codigoMascota, String tipoServicio, String motivo,
                                       String urgenciaTexto) throws VeterinariaException {
         Mascota mascota = buscarMascota(codigoMascota);
-        String servicio = obligatorio(tipoServicio, "El tipo de servicio");
+        String servicio = normalizarServicio(obligatorio(tipoServicio, "El tipo de servicio"));
+        if (!tiposServicio.contains(servicio)) {
+            throw new VeterinariaException("El servicio '" + servicio + "' no esta en el catalogo: " + tiposServicio);
+        }
         NivelUrgencia urgencia = convertirUrgencia(urgenciaTexto);
         String descripcion = obligatorio(motivo, "El motivo de la consulta");
+        if (mascotasEnEspera.contains(mascota.getCodigo())) {
+            throw new VeterinariaException(mascota.getNombre() + " (" + mascota.getCodigo()
+                    + ") ya tiene una solicitud en espera");
+        }
 
         Atencion a = new Atencion(siguienteNumero++, mascota, servicio, descripcion, urgencia, ++contadorLlegadas);
         registroAtenciones.add(a);
         atencionesPorNumero.put(a.getNumero(), a);
+        mascotasEnEspera.add(mascota.getCodigo());
         return a;
     }
 
@@ -120,6 +148,11 @@ public class ClinicaVeterinaria {
     public List<Atencion> getRegistroAtenciones() {
         return Collections.unmodifiableList(registroAtenciones);
     }
+
+    public Set<String> getMascotasEnEspera() {
+        return Collections.unmodifiableSet(mascotasEnEspera);
+    }
+
     public int totalPropietarios() {
         return propietariosPorDocumento.size();
     }
@@ -159,6 +192,12 @@ public class ClinicaVeterinaria {
             throw new VeterinariaException(e.getMessage());
         }
     }
+    /** "  consulta   GENERAL " -> "Consulta general": evita duplicados que solo difieren en formato. */
+    private String normalizarServicio(String tipo) {
+        String t = tipo.trim().replaceAll("\\s+", " ").toLowerCase();
+        return Character.toUpperCase(t.charAt(0)) + t.substring(1);
+    }
+
     private static String limpiar(String texto) {
         return texto == null ? "" : texto.trim();
     }

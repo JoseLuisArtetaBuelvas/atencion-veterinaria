@@ -187,6 +187,82 @@ public class ClinicaVeterinaria {
     }
 
     // ==================================================================
+    // Modificaciones
+    // ==================================================================
+
+    /**
+     * Cambia la urgencia de una solicitud en espera. La PriorityQueue no se reordena sola si
+     * un elemento cambia por dentro: hay que sacarlo, modificarlo y volver a insertarlo.
+     */
+    public Atencion cambiarUrgencia(int numero, String urgenciaTexto) throws VeterinariaException {
+        Atencion a = buscarAtencion(numero);
+        exigirEnEspera(a, "cambiar la urgencia");
+        NivelUrgencia nueva = convertirUrgencia(urgenciaTexto);
+        salaDeEspera.remove(a);
+        a.setUrgencia(nueva);
+        salaDeEspera.add(a);
+        return a;
+    }
+
+    public Atencion cambiarServicio(int numero, String tipoServicio) throws VeterinariaException {
+        Atencion a = buscarAtencion(numero);
+        exigirEnEspera(a, "cambiar el servicio");
+        String servicio = normalizarServicio(obligatorio(tipoServicio, "El tipo de servicio"));
+        if (!tiposServicio.contains(servicio)) {
+            throw new VeterinariaException("El servicio '" + servicio + "' no esta en el catalogo");
+        }
+        a.setTipoServicio(servicio);
+        return a;
+    }
+
+    public Mascota actualizarMascota(String codigo, String nombre, Integer edad) throws VeterinariaException {
+        Mascota m = buscarMascota(codigo);
+        if (nombre != null && !nombre.isBlank()) {
+            m.setNombre(nombre.trim());
+        }
+        if (edad != null) {
+            validarEdad(edad);
+            m.setEdadAnios(edad);
+        }
+        return m;
+    }
+
+    /** Pasa una mascota a otro propietario: se mueve de un TreeSet a otro dentro del TreeMap. */
+    public Mascota cambiarPropietario(String codigoMascota, String documentoNuevo) throws VeterinariaException {
+        Mascota m = buscarMascota(codigoMascota);
+        Propietario nuevo = buscarPropietario(documentoNuevo);
+        mascotasPorPropietario.get(m.getPropietario().getDocumento()).remove(m);
+        m.setPropietario(nuevo);
+        mascotasPorPropietario.get(nuevo.getDocumento()).add(m);
+        return m;
+    }
+
+    /**
+     * Corrige el codigo de una mascota. El codigo es la clave del Map, el criterio del TreeSet
+     * y el dato del Set de mascotas en espera, asi que las tres colecciones se actualizan:
+     * se retira con el codigo viejo, se cambia el codigo y se vuelve a guardar con el nuevo.
+     */
+    public Mascota corregirCodigoMascota(String codigoActual, String codigoNuevo) throws VeterinariaException {
+        Mascota m = buscarMascota(codigoActual);
+        String nuevo = validarCodigoMascotaNuevo(codigoNuevo);
+        String viejo = m.getCodigo();
+        SortedSet<Mascota> delPropietario = mascotasPorPropietario.get(m.getPropietario().getDocumento());
+
+        mascotasPorCodigo.remove(viejo);
+        delPropietario.remove(m);                 // se retira ANTES de cambiar el codigo que usa compareTo
+        boolean estabaEnEspera = mascotasEnEspera.remove(viejo);
+
+        m.setCodigo(nuevo);
+
+        mascotasPorCodigo.put(nuevo, m);
+        delPropietario.add(m);
+        if (estabaEnEspera) {
+            mascotasEnEspera.add(nuevo);
+        }
+        return m;
+    }
+
+    // ==================================================================
     // Consultas
     // ==================================================================
 
@@ -254,6 +330,14 @@ public class ClinicaVeterinaria {
             throw new VeterinariaException(e.getMessage());
         }
     }
+
+    private void exigirEnEspera(Atencion a, String accion) throws VeterinariaException {
+        if (a.getEstado() != EstadoAtencion.EN_ESPERA) {
+            throw new VeterinariaException("La solicitud #" + a.getNumero() + " esta " + a.getEstado()
+                    + ": no se puede " + accion);
+        }
+    }
+
     /** "  consulta   GENERAL " -> "Consulta general": evita duplicados que solo difieren en formato. */
     private String normalizarServicio(String tipo) {
         String t = tipo.trim().replaceAll("\\s+", " ").toLowerCase();

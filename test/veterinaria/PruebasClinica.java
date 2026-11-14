@@ -90,8 +90,8 @@ public class PruebasClinica {
     private static void probarOrden() throws VeterinariaException {
         System.out.println("== Orden con TreeMap, TreeSet y Comparator ==");
         ClinicaVeterinaria c = clinicaConDatos();
-        verificar("TreeMap: primer documento en orden", c.getMascotasPorPropietario().firstKey(), "1001234567");
-        verificar("TreeMap: ultimo documento en orden", c.getMascotasPorPropietario().lastKey(), "92541873");
+        verificar("TreeMap: primer documento en orden numerico", c.getMascotasPorPropietario().firstKey(), "45698712");
+        verificar("TreeMap: ultimo documento en orden numerico", c.getMascotasPorPropietario().lastKey(), "1143789456");
         List<String> codigosLaura = new ArrayList<>();
         for (Mascota m : c.getMascotasPorPropietario().get("1047382910")) {
             codigosLaura.add(m.getCodigo());

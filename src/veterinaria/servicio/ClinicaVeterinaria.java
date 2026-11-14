@@ -8,6 +8,7 @@ import veterinaria.modelo.Propietario;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -31,6 +32,14 @@ public class ClinicaVeterinaria {
 
     public static final int EDAD_MAXIMA = 30;
 
+    /**
+     * Los documentos son texto, y como texto "45698712" queda despues de "1143789456".
+     * Para ordenarlos como numeros (sin convertirlos a long) se compara primero la cantidad
+     * de digitos y, con igual cantidad, el orden alfabetico, que en ese caso coincide con el numerico.
+     */
+    public static final Comparator<String> ORDEN_NUMERICO_DOCUMENTO =
+            Comparator.comparingInt(String::length).thenComparing(Comparator.naturalOrder());
+
     // 1. Coleccion principal: registro general de solicitudes en orden de registro
     private final List<Atencion> registroAtenciones = new ArrayList<>();
 
@@ -44,7 +53,7 @@ public class ClinicaVeterinaria {
     private final Set<String> mascotasEnEspera = new HashSet<>();      // una mascota no puede tener dos solicitudes en espera
 
     // 4. Datos ordenados: propietarios por documento y, para cada uno, sus mascotas por codigo
-    private final SortedMap<String, SortedSet<Mascota>> mascotasPorPropietario = new TreeMap<>();
+    private final SortedMap<String, SortedSet<Mascota>> mascotasPorPropietario = new TreeMap<>(ORDEN_NUMERICO_DOCUMENTO);
 
     // 5. Atencion por prioridad clinica
     private final PriorityQueue<Atencion> salaDeEspera = new PriorityQueue<>(Atencion.POR_PRIORIDAD_CLINICA);
